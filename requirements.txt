@@ -1,13 +1,12 @@
 
 
 ## user defined
-pandas-profiling
-certifi
-ipywidgets
-great_expectations
+
 google-cloud-bigquery==2.34.1
 fastapi
 uvicorn
 pytest
 python-dotenv
-
+pandas
+matplotlib
+pyarrow
