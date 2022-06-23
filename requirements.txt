@@ -10,3 +10,5 @@ python-dotenv
 pandas
 matplotlib
 pyarrow
+ipykernel
+geopandas
