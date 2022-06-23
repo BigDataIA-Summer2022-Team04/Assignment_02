@@ -32,7 +32,7 @@ logging.basicConfig(
 
 
 """
-This funcation takes aircraft type and returns the type in string and registration details.
+This function takes aircraft type and returns the type in string and registration details.
 --------
 input is type: int
 ------
