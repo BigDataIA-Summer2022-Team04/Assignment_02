@@ -7,6 +7,7 @@ import logging
 from dotenv import load_dotenv
 import pandas as pd
 from validate_state import validate_state
+from logfunc import logfunc
 
 #################################
 
@@ -127,6 +128,7 @@ def main( n : int, year : int):
 # Abhi
 @app.get("/planes_info_from_mfg_year")
 def queries( n : int, year : int):
+    endpoint='/planes_info_from_mfg_year'
 
     """Takes n and mfgyear as input to give registration details of planes manufactured in the entered year, 
     The value of n specifies whether the data required is for surveillance or non surveillance planes 
@@ -153,6 +155,7 @@ def queries( n : int, year : int):
             except Exception as e:
                 logging.error(f"Check the path of the JSON file and contents")
                 logging.error(f"Cannot connect to Big Query Server")
+                logfunc(endpoint,101)
                 return 101
             try:
                 logging.info(f"Querying data from big query for surveillance years")
@@ -161,6 +164,7 @@ def queries( n : int, year : int):
                 where b.class = 'surveil' and extract(year from a.year_mfr) is not Null order by 1""")
             except Exception as e:
                 logging.error(f"Bad SQL Query, verify SQL for fetching surveillance planes mfg years")
+                logfunc(endpoint,104)
                 return 104
             resultyear = queryyears.result()
             years=[]
@@ -173,10 +177,12 @@ def queries( n : int, year : int):
                     where b.class = 'surveil' and extract(year from a.year_mfr)={year}""").to_dataframe()
                 except Exception as e:
                     logging.error(f"Bad SQL Query, verify SQL for fetching surveillance data")
+                    logfunc(endpoint,104)
                     return 104
 
                 if df.empty:
                     logging.error(f"No rows returned from big query")
+                    logfunc(endpoint,103)
                     return 103
 
                 logging.info(f"Parsing dataframe into Json object")
@@ -187,6 +193,7 @@ def queries( n : int, year : int):
                 return  parsed_records
             else:
                 print('No non surrveilance planes were manufactured in the year provided please select from the following years ', years)
+                logfunc(endpoint,103)
                 return 103
 
         else:
@@ -196,6 +203,7 @@ def queries( n : int, year : int):
             except Exception as e:
                 logging.error(f"Check the path of the JSON file and contents")
                 logging.error(f"Cannot connect to Big Query Server")
+                logfunc(endpoint,101)
                 return 101
             try:
                 logging.info(f"Querying data from big query for surveillance years")
@@ -204,6 +212,7 @@ def queries( n : int, year : int):
                 where b.class != 'surveil' and extract(year from a.year_mfr) is not Null order by 1""")
             except Exception as e:
                 logging.error(f"Bad SQL Query, verify SQL for fetching years for non surveillance planes mfg years")
+                logfunc(endpoint,104)
                 return 104
             resultyear = queryyears.result()
             years=[]
@@ -215,6 +224,7 @@ def queries( n : int, year : int):
                     logging.info(f"Connection established to Big Query Server")
                 except Exception as e:
                     logging.error(f"Check the path of the JSON file and contents")
+                    logfunc(endpoint,101)
                     return 101
                 df = pd.DataFrame()
 
@@ -227,6 +237,7 @@ def queries( n : int, year : int):
 
                 if df.empty:
                     logging.error(f"No rows returned from big query")
+                    logfunc(endpoint,103)
                     return 103
 
                 logging.info(f"Parsing dataframe into Json object")
@@ -237,9 +248,11 @@ def queries( n : int, year : int):
                 return  parsed_records
             else:
                 print('No non surrveilance planes were manufactured in the year provided please select from the following years ', years)
+                logfunc(endpoint,103)
                 return 103
     else:
         print('please enter 0 for surveillance plane details or 1 for non-surveillance')
+        logfunc(endpoint,102)
         return 102
 
 def exit_script(error_code: int = 0):
@@ -258,6 +271,7 @@ def main( n : int, year : int):
 ####################################################################################
 @app.get("/number_of_flights")
 def noofflights(quan: int,flights: int):
+    endpoint="/number_of_flights"
     logging.info(f"Script Starts")
     if quan in (0,1):
         logging.info(f"Value of quan is valid, {quan} is valid")
@@ -268,6 +282,7 @@ def noofflights(quan: int,flights: int):
             except Exception as e:
                 logging.error(f"Check the path of the JSON file and contents")
                 logging.error(f"Cannot connect to Big Query Server")
+                logfunc(endpoint,101)
                 return 101
             try:
                 logging.info(f"Querying data from big query")
@@ -275,9 +290,11 @@ def noofflights(quan: int,flights: int):
                 where flights > {flights} order by flights desc""").to_dataframe()
             except Exception as e:
                 logging.error(f"Bad SQL Query, verify SQL for fetching data")
+                logfunc(endpoint,104)
                 return 104
             if df.empty:
                 logging.error(f"No rows returned from big query")
+                logfunc(endpoint,103)
                 return 103
             logging.info(f"Parsing dataframe into Json object")
             json_records = df.to_json(orient='records')
@@ -294,6 +311,7 @@ def noofflights(quan: int,flights: int):
             except Exception as e:
                 logging.error(f"Check the path of the JSON file and contents")
                 logging.error(f"Cannot connect to Big Query Server")
+                logfunc(endpoint,101)
                 return 101
 
             try:
@@ -302,10 +320,12 @@ def noofflights(quan: int,flights: int):
                 where flights < {flights} order by flights desc""").to_dataframe()
             except Exception as e:
                 logging.error(f"Bad SQL Query, verify SQL for fetching surveillance data")
+                logfunc(endpoint,104)
                 return 104
 
             if df.empty:
                 logging.error(f"No rows returned from big query")
+                logfunc(endpoint,103)
                 return 103
             logging.info(f"Parsing dataframe into Json object")
             json_records = df.to_json(orient='records')
@@ -315,6 +335,7 @@ def noofflights(quan: int,flights: int):
             return  parsed_records
     else:
         print('please enter 0 or 1')
+        logfunc(endpoint,102)
         return 102
 
 
@@ -335,6 +356,7 @@ def main(quan: int,flights: int):
 #################################################################################
 @app.get("/regdet_by_type_aircraft")
 def typeaircraft(type:int):
+    endpoint="/regdet_by_type_aircraft"
     logging.info(f"Script Starts")
     try:
         client = bigquery.Client()
@@ -342,11 +364,13 @@ def typeaircraft(type:int):
     except Exception as e:
         logging.error(f"Check the path of the JSON file and contents")
         logging.error(f"Cannot connect to Big Query Server")
+        logfunc(endpoint,101)
         return 101
     try:
         aircrafttypes = client.query(f"""select distinct TYPE_AIRCRAFT from `plane-detection-352701.SPY_PLANE.FAA_REGISTRATION-2022-06-13T00_09_43` order by 1""")
     except Exception as e:
         logging.error(f"Bad SQL Query, verify SQL for fetching surveillance planes mfg years")
+        logfunc(endpoint,104)
         return 104
 
     resulttype = aircrafttypes.result()
@@ -360,9 +384,11 @@ def typeaircraft(type:int):
             where a.TYPE_AIRCRAFT={type}""").to_dataframe()
         except Exception as e:
             logging.error(f"Bad SQL Query, verify SQL for fetching surveillance data")
+            logfunc(endpoint,104)
             return 104
     else:
         print('Please enter a valid aircraft type from this list ', listypes)
+        logfunc(endpoint,102)
         return 102
     
     logging.info(f"Parsing dataframe into Json object")
@@ -391,6 +417,7 @@ def main(type:int):
 #########################################################################################
 @app.get("regdet_through_enginetype")
 def typengine(type:int):
+    endpoint="regdet_through_enginetype"
     logging.info(f"Script Starts")
     try:
         client = bigquery.Client()
@@ -398,11 +425,13 @@ def typengine(type:int):
     except Exception as e:
         logging.error(f"Check the path of the JSON file and contents")
         logging.error(f"Cannot connect to Big Query Server")
+        logfunc(endpoint,101)
         return 101
     try:
         enginetype = client.query(f"""select distinct TYPE_ENGINE from `plane-detection-352701.SPY_PLANE.FAA_REGISTRATION-2022-06-13T00_09_43` order by 1""")
     except Exception as e:
         logging.error(f"Bad SQL Query, verify SQL for fetching surveillance planes mfg years")
+        logfunc(endpoint,104)
         return 104
 
     resulttype = enginetype.result()
@@ -416,9 +445,11 @@ def typengine(type:int):
             where a.TYPE_ENGINE={type}""").to_dataframe()
         except Exception as e:
             logging.error(f"Bad SQL Query, verify SQL for fetching surveillance data")
+            logfunc(endpoint,104)
             return 104
     else:
         print('Please enter a valid engine type from this list ', listypes)
+        logfunc(endpoint,102)
         return 102
     
     logging.info(f"Parsing dataframe into Json object")
