@@ -144,7 +144,7 @@ async def get_map(user_list: Union[list[str], None] = Query(default=['ALL'], des
             raise HTTPException(status_code=status.HTTP_204_NO_CONTENT)
         logging.info(f"Aggregating data from dataframe")
         df = df.dropna()
-        states = geopandas.read_file('API/routers/data/usa-states-census-2014.shp')
+        states = geopandas.read_file('routers/data/usa-states-census-2014.shp')
         states = states.to_crs("EPSG:3395")
         filter = states.merge(df, on='STUSPS')
         fig, ax = plt.subplots(1, 1, figsize=(20,15))
