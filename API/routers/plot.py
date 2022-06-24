@@ -1,18 +1,18 @@
 
-from fastapi import APIRouter, HTTPException, Response, status, Query
-from validate_state import validate_state
-from repository import user_functions as uf
-import logging
 import time
-from google.cloud import bigquery
-import pandas as pd
+import logging
+import geopandas
 import numpy as np
-import matplotlib.pyplot as plt
+import pandas as pd
 from io import BytesIO
-from starlette.responses import StreamingResponse
 from typing import Union
 import matplotlib.pyplot as plt
-import geopandas
+import matplotlib.pyplot as plt
+from google.cloud import bigquery
+from validate_state import validate_state
+from starlette.responses import StreamingResponse
+from fastapi import APIRouter, HTTPException, Response, status, Query
+
 
 router = APIRouter(
     prefix="/plot",
@@ -81,11 +81,13 @@ async def get_histogram(user_list: Union[list[str], None] = Query(default=['ALL'
         plt.bar_label(bars, fontsize=10, color='black')
         plt.margins(x=0.01, y=0.1)
         # plt.show()
-        ts = time.strftime("%Y%m%d-%H%M%S")
+        #ts = time.strftime("%Y%m%d-%H%M%S")
         buf = BytesIO()
         plt.savefig(buf, format="png")
         buf.seek(0)
         return StreamingResponse(buf, media_type="image/png")
+
+
 
 @router.get('/map', status_code=status.HTTP_200_OK)
 async def get_map(user_list: Union[list[str], None] = Query(default=['ALL'], description="State code of two char or One input of 'all'"), min_year: int = Query(default=1910, description="Input start year"), max_year: int = Query(default=2017, description="Input end year, Cannot be smaller or equal to start year")):
@@ -116,7 +118,7 @@ async def get_map(user_list: Union[list[str], None] = Query(default=['ALL'], des
             STATE AS STUSPS,
             COUNT(*) AS COUNT
             FROM `plane-detection-352701.SPY_PLANE.FAA` 
-            WHERE COUNTRY = 'US'
+            WHERE COUNTRY = 'US' AND YEAR_MFR BETWEEN '{min_year}-01-01' AND '{max_year}-01-01'
             GROUP BY
             STATE
             """
@@ -126,7 +128,7 @@ async def get_map(user_list: Union[list[str], None] = Query(default=['ALL'], des
             STATE AS STUSPS,
             COUNT(*) AS COUNT
             FROM `plane-detection-352701.SPY_PLANE.FAA` 
-            WHERE COUNTRY = 'US' AND STATE IN ('{state_code}')
+            WHERE COUNTRY = 'US' AND STATE IN ('{state_code}') AND YEAR_MFR BETWEEN '{min_year}-01-01' AND '{max_year}-01-01'
             GROUP BY
             STATE
             """
@@ -142,24 +144,19 @@ async def get_map(user_list: Union[list[str], None] = Query(default=['ALL'], des
             raise HTTPException(status_code=status.HTTP_204_NO_CONTENT)
         logging.info(f"Aggregating data from dataframe")
         df = df.dropna()
-
-        states = geopandas.read_file('/Users/piyush/Downloads/geopandas-tutorial-master/data/usa-states-census-2014.shp')
+        states = geopandas.read_file('/Users/piyush/Sandbox/Assignment_02/API/routers/data/usa-states-census-2014.shp')
         states = states.to_crs("EPSG:3395")
         filter = states.merge(df, on='STUSPS')
-        us_boundary_map = states.boundary.plot(figsize=(18, 12), color="Gray")
-        filter.plot(ax=us_boundary_map,  cmap = 'Spectral')
-
-        # fig = plt.figure(1, figsize=(25,15))
-        # ax = fig.add_subplot()
-        # filter.apply(lambda x: ax.annotate(text=x.NAME + "\n" + str(x.COUNT), xy=x.geometry.centroid.coords[0], ha='center', fontsize=8),axis=1)
-        # states.boundary.plot(ax=ax, color='Black', linewidth=.7)
-        # states.plot(ax = ax, figsize = (10,10), cmap = 'Spectral', legend = True)
-
-        # states.plot(column = 'COUNT', figsize = (25,15), cmap = 'Spectral', legend = True)
-
-        # ax.axes.xaxis.set_visible(False)
-        # ax.axes.yaxis.set_visible(False)
-        plt.title('Flight Registration State Wise')
+        fig, ax = plt.subplots(1, 1, figsize=(20,15))
+        ax.axes.xaxis.set_visible(False)
+        ax.axes.yaxis.set_visible(False)
+        ax = fig.add_subplot()
+        plt.title(f'Aircraft Registration Counts between {min_year} and {max_year} for {", ".join(filtered_state)} states', fontdict = {'fontsize' : 18})
+        states.boundary.plot(ax=ax, color='Black', linewidth=.5)
+        filter.plot(ax=ax, column = 'COUNT', cmap = 'Spectral', legend = True, legend_kwds={'shrink': 0.3})
+        filter.apply(lambda x: ax.annotate(text=x.STUSPS + "\n" + str(x.COUNT), xy=x.geometry.centroid.coords[0], ha='center', fontsize=12),axis=1)
+        ax.axes.xaxis.set_visible(False)
+        ax.axes.yaxis.set_visible(False)
         buf = BytesIO()
         plt.savefig(buf, format="png")
         buf.seek(0)

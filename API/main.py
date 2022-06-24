@@ -9,15 +9,15 @@ from google.cloud import bigquery
 from fastapi import FastAPI, Query
 from validate_state import validate_state
 from fastapi.responses import HTMLResponse
-
+from fastapi.staticfiles import StaticFiles
 
 #################################################
-# Author: Piyush
-# Creation Date: 22-Jun-22
+# Author: Jui, Abhijit, Piyush
+# Creation Date: 23-Jun-22
 # Last Modified Date:
 # Change Logs:
 # SL No         Date            Changes
-# 1             22-Jun-22       First Version
+# 1             23-Jun-22       First Version
 # 
 #################################################
 # Exit Codes:
@@ -40,7 +40,7 @@ logging.basicConfig(
 
 #################################
 
-app = FastAPI()
+app = FastAPI(title="Main App")
 
 #################################
 # Piyush
@@ -48,28 +48,14 @@ app = FastAPI()
 app.include_router(plot.router)
 app.include_router(data.router)
 
-@app.get("/", response_class=HTMLResponse)
-async def read_items():
-    html_content = """
-    <html>
-        <head>
-            <title>DAMG7245 Assignment 2</title>
-        </head>
-        <body>
-            <h1>DaaS API</h1>
-            <p> Using FastAPI, python function converted as a API to interact with big-Query. <br>
-                Refer localhost:<port_number>/doc for API documentation</p>
-        </body>
-    </html>
-    """
-    return HTMLResponse(content=html_content, status_code=200)
-
+app.mount("/", StaticFiles(directory="ui", html=True), name="ui")
 #################################
 
 
 #################################
 # Abhi
 #################################
+
 
 #################################
 # Jui
@@ -92,12 +78,10 @@ def big_query_handshake(sample_query: str = r"SELECT YEAR_MFR FROM `plane-detect
     except Exception as e:
         logging.error(f"Handshake | Cannot establish Handshake with Big-Query. \nException: {e}")
         return 101
-    # sample_query = f"""SELECT YEAR_MFR FROM `plane-detection-352701.SPY_PLANE.FAA` LIMIT 5"""
     logging.info(f"Handshake | Fetching data from Big-Query")
     try:
         df = client.query(sample_query).to_dataframe()
     except Exception as e:
-        # logging.error(f"Exception: {e}")
         logging.error(f"Handshake | Bad SQL Query, Please Re-Verify SQL \nException: {e}")
         return 104
     if df.empty:

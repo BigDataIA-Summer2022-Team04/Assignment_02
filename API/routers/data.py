@@ -1,12 +1,9 @@
 
-from fastapi import APIRouter, HTTPException, Response, status, Query
-from validate_state import validate_state
-from repository import user_functions as uf
-import json
 import logging
-from google.cloud import bigquery
 from typing import Union
-
+from google.cloud import bigquery
+from validate_state import validate_state
+from fastapi import APIRouter, HTTPException, Response, status, Query
 
 
 router = APIRouter(
@@ -16,7 +13,6 @@ router = APIRouter(
 
 
 @router.get('/registrant', status_code=status.HTTP_200_OK)
-# def get_registrant(state_code: str, records: bool = False):
 async def get_registrant(user_list: Union[list[str], None] = Query(default=None), if_records: bool = False):
     if not user_list:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="User Input is NULL" )
@@ -86,8 +82,6 @@ async def get_registrant(user_list: Union[list[str], None] = Query(default=None)
 
 
 @router.get('/aircraft', status_code=status.HTTP_200_OK)
-# def get_aircraft(state_code: str, records: bool = False):
-#     if not validate_state(state_code):
 async def get_aircraft(user_list: Union[list[str], None] = Query(default=None), if_records: bool = False):
     if not user_list:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="User Input is NULL" )
@@ -159,8 +153,6 @@ async def get_aircraft(user_list: Union[list[str], None] = Query(default=None), 
 
 
 @router.get('/engine', status_code=status.HTTP_200_OK)
-# def get_engine(state_code: str, records: bool = False):
-#     if not validate_state(state_code):
 async def get_engine(user_list: Union[list[str], None] = Query(default=None), if_records: bool = False):
     if not user_list:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="User Input is NULL" )
