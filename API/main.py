@@ -7,6 +7,7 @@ import json
 import logging
 from dotenv import load_dotenv
 import pandas as pd
+from logfunc import logfunc
 
 #Jui
 #########################################################################################
@@ -23,6 +24,7 @@ app = FastAPI()
 
 @app.get("/get_popular_engine_count")
 def popular_engine():
+    endpoint=('/get_popular_engine_count') 
     """Gets and returns the aggregate STATISTICS of flights and records
     Parameters
     ----------
@@ -40,6 +42,7 @@ def popular_engine():
     except Exception as e:
         logging.error(f"Check the path of the JSON file and contents")
         logging.error(f"Cannot connect to Big Query Server")
+        logfunc(endpoint, 101)
         return 101
     formated_query = f"""
     WITH TOP_ENGINES AS (SELECT TYPE_ENGINE, COUNT(N_NUMBER) AS COUNT_ENGINE_TYPE FROM `plane-detection-352701.SPY_PLANE.FAA` 
@@ -55,9 +58,11 @@ ORDER BY COUNT_ENGINE_TYPE DESC
         df = client.query(formated_query).to_dataframe()
     except Exception as e:
         logging.error(f"Bad SQL Query, Please verify SQL")
+        logfunc(endpoint, 104)
         return 104
     if df.empty:
         logging.error(f"No rows returned from big query")
+        logfunc(endpoint, 103)
         return 103
     # logging.info(f"Aggregating data from dataframe")
     # df2 = df.groupby(['TYPE_AIRCRAFT'])['TYPE_AIRCRAFT'].count().reset_index(name='count').sort_values(['count'], ascending=False) 
@@ -87,6 +92,7 @@ ORDER BY COUNT_ENGINE_TYPE DESC
 
 # Defined functions
 def find_address(N_NUMBER : str):
+    endpoint=('/get_company_address')
     """Gets and returns the records of comapny name with full address
 
     Parameters
@@ -107,6 +113,7 @@ def find_address(N_NUMBER : str):
     except Exception as e:
         logging.error(f"Check the path of the JSON file and contents")
         logging.error(f"Cannot connect to Big Query Server")
+        logfunc(endpoint, 101)
         return 101
     formated_query = f"""SELECT 
 spy.N_NUMBER,
@@ -127,9 +134,11 @@ WHERE N_NUMBER = '{N_NUMBER}'
         df = client.query(formated_query).to_dataframe()
     except Exception as e:
         logging.error(f"Bad SQL Query, Please verify SQL")
+        logfunc(endpoint, 104)
         return 104
     if df.empty:
         logging.error(f"No rows returned from big query")
+        logfunc(endpoint, 103)
         return 103
     # logging.info(f"Aggregating data from dataframe")
     # df2 = df.groupby(['TYPE_AIRCRAFT'])['TYPE_AIRCRAFT'].count().reset_index(name='count').sort_values(['count'], ascending=False) 
@@ -154,6 +163,7 @@ WHERE N_NUMBER = '{N_NUMBER}'
 
 @app.get("/flight_details_between_years")
 def find_by_dates(start_date, end_date):
+    endpoint=('/flight_details_between_years') 
     """Gets and returns the records of aircrafts
 
     Parameters
@@ -176,6 +186,7 @@ def find_by_dates(start_date, end_date):
     except Exception as e:
         logging.error(f"Check the path of the JSON file and contents")
         logging.error(f"Cannot connect to Big Query Server")
+        logfunc(endpoint, 101)
         return 101
     formated_query = f"""
     SELECT N_NUMBER, YEAR_MFR FROM `plane-detection-352701.SPY_PLANE.FAA` 
@@ -186,9 +197,11 @@ def find_by_dates(start_date, end_date):
         df = client.query(formated_query).to_dataframe()
     except Exception as e:
         logging.error(f"Bad SQL Query, Please verify SQL")
+        logfunc(endpoint, 104)
         return 104
     if df.empty:
         logging.error(f"No rows returned from big query")
+        logfunc(endpoint, 103)
         return 103
     # logging.info(f"Aggregating data from dataframe")
     # df2 = df.groupby(['TYPE_AIRCRAFT'])['TYPE_AIRCRAFT'].count().reset_index(name='count').sort_values(['count'], ascending=False) 
