@@ -9,9 +9,9 @@ from typing import Union
 import matplotlib.pyplot as plt
 import matplotlib.pyplot as plt
 from google.cloud import bigquery
-from validate_state import validate_state
+from custom_functions import validate_state, logfunc
 from starlette.responses import StreamingResponse
-from fastapi import APIRouter, HTTPException, Response, status, Query
+from fastapi import APIRouter, HTTPException, Response, status, Query, Request
 
 
 router = APIRouter(
@@ -21,9 +21,14 @@ router = APIRouter(
 
 
 @router.get('/histogram', status_code=status.HTTP_200_OK)
-async def get_histogram(user_list: Union[list[str], None] = Query(default=['ALL'], description="State code of two char or One input of 'all'"), min_year: int = Query(default=1910, description="Input start year"), max_year: int = Query(default=2017, description="Input end year, Cannot be smaller or equal to start year"), buckets: int = Query(default=10, description="bin distribution, value more than 1")):
+async def get_histogram(user_list: Union[list[str], None] = Query(default=['ALL'], description="State code of two char or One input of 'all'"),
+                        min_year: int = Query(default=1910, description="Input start year"),
+                        max_year: int = Query(default=2017, description="Input end year, Cannot be smaller or equal to start year"),
+                        buckets: int = Query(default=10, description="bin distribution, value more than 1")):
+    
     filtered_state = []
     if not user_list:
+        logfunc("/plot/histogram", 400)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="User Input is NULL" )
     elif (len(user_list) == 1) and (user_list[0].upper() == "ALL"):
         filtered_state.append(user_list[0].upper())
@@ -33,6 +38,7 @@ async def get_histogram(user_list: Union[list[str], None] = Query(default=['ALL'
                 filtered_state.append(states.upper())
         state_code = "', '".join(filtered_state)
     if (not filtered_state) or (max_year < min_year) or ( (max_year - min_year) < buckets) or (buckets <= 1) :
+        logfunc("/plot/histogram", 400)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="User Input is Invalid, Verify the Inputs")
     else:
         logging.info(f"User passed path, States: {filtered_state}; Min_year: {min_year}; Max_year: {max_year} is valid")
@@ -42,6 +48,7 @@ async def get_histogram(user_list: Union[list[str], None] = Query(default=['ALL'
         except Exception as e:
             logging.error(f"Check the path of the JSON file and contents")
             logging.error(f"Cannot connect to Big Query Server")
+            logfunc("/plot/histogram", 500)
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
         if (len(user_list) == 1) and (user_list[0].upper() == "ALL"):
             formated_query = f"""
@@ -62,9 +69,11 @@ async def get_histogram(user_list: Union[list[str], None] = Query(default=['ALL'
         except Exception as e:
             logging.error(f"Exception: {e}")
             logging.error(f"Bad SQL Query, Please verify SQL")
+            logfunc("/plot/histogram", 500)
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
         if df.empty:
             logging.error(f"No rows returned from big query")
+            logfunc("/plot/histogram", 204)
             raise HTTPException(status_code=status.HTTP_204_NO_CONTENT)
         logging.info(f"Aggregating data from dataframe")
         df = df.dropna()
@@ -85,6 +94,8 @@ async def get_histogram(user_list: Union[list[str], None] = Query(default=['ALL'
         buf = BytesIO()
         plt.savefig(buf, format="png")
         buf.seek(0)
+        # logging.debug(f"raw_url {request.url._url}")
+        logfunc("/plot/map", 200)
         return StreamingResponse(buf, media_type="image/png")
 
 
@@ -93,6 +104,7 @@ async def get_histogram(user_list: Union[list[str], None] = Query(default=['ALL'
 async def get_map(user_list: Union[list[str], None] = Query(default=['ALL'], description="State code of two char or One input of 'all'"), min_year: int = Query(default=1910, description="Input start year"), max_year: int = Query(default=2017, description="Input end year, Cannot be smaller or equal to start year")):
     filtered_state = []
     if not user_list:
+        logfunc("/plot/map", 400)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="User Input is NULL" )
     elif (len(user_list) == 1) and (user_list[0].upper() == "ALL"):
         filtered_state.append(user_list[0].upper())
@@ -102,6 +114,7 @@ async def get_map(user_list: Union[list[str], None] = Query(default=['ALL'], des
                 filtered_state.append(states.upper())
         state_code = "', '".join(filtered_state)
     if (not filtered_state) or (max_year < min_year) :
+        logfunc("/plot/map", 400)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="User Input is Invalid, Verify the Inputs")
     else:
         logging.info(f"User passed path, States: {filtered_state}; Min_year: {min_year}; Max_year: {max_year} is valid")
@@ -111,6 +124,7 @@ async def get_map(user_list: Union[list[str], None] = Query(default=['ALL'], des
         except Exception as e:
             logging.error(f"Check the path of the JSON file and contents")
             logging.error(f"Cannot connect to Big Query Server")
+            logfunc("/plot/map", 500)
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
         if (len(user_list) == 1) and (user_list[0].upper() == "ALL"):
             formated_query = f"""
@@ -138,9 +152,11 @@ async def get_map(user_list: Union[list[str], None] = Query(default=['ALL'], des
         except Exception as e:
             logging.error(f"Exception: {e}")
             logging.error(f"Bad SQL Query, Please verify SQL")
+            logfunc("/plot/map", 500)
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
         if df.empty:
             logging.error(f"No rows returned from big query")
+            logfunc("/plot/map", 204)
             raise HTTPException(status_code=status.HTTP_204_NO_CONTENT)
         logging.info(f"Aggregating data from dataframe")
         df = df.dropna()
@@ -160,4 +176,5 @@ async def get_map(user_list: Union[list[str], None] = Query(default=['ALL'], des
         buf = BytesIO()
         plt.savefig(buf, format="png")
         buf.seek(0)
+        logfunc("/plot/map", 200)
         return StreamingResponse(buf, media_type="image/png")
