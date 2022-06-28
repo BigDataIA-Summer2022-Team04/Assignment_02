@@ -1,14 +1,13 @@
 import os
-import uvicorn
 import logging
 import pandas as pd
-from typing import Union
+import models
+from database import engine, SessionLocal
 from dotenv import load_dotenv
-from routers import plot, data
+from routers import plot, data, users, authentication
 from google.cloud import bigquery
-from fastapi import FastAPI, Query
-from custom_functions import validate_state, logfunc
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI
+from custom_functions import logfunc
 from fastapi.staticfiles import StaticFiles
 import json
 
@@ -43,6 +42,7 @@ logging.basicConfig(
 
 app = FastAPI(title="Main App")
 
+models.Base.metadata.create_all(bind=engine)
 
 #################################
 # Abhi
@@ -542,9 +542,11 @@ def find_by_dates(start_date, end_date):
 #################################
 # Piyush
 
+
 app.include_router(plot.router)
 app.include_router(data.router)
-
+app.include_router(users.router)
+app.include_router(authentication.router)
 app.mount("/", StaticFiles(directory="ui", html=True), name="ui")
 #################################
 
