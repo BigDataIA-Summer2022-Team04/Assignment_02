@@ -47,12 +47,12 @@ app = FastAPI(title="Main App")
 #################################
 # Abhi
 @app.get("/planes_info_from_manufacture_year")
-def queries( n : int, year : int):
+def queries( surveil : int, year : int):
     endpoint='/planes_info_from_mfg_year'
 
-    """Takes n and mfgyear as input to give registration details of planes manufactured in the entered year, 
-    The value of n specifies whether the data required is for surveillance or non surveillance planes 
-    n=0 means data for surveillance planes and n=1 indicates data for non surveillance planes.
+    """Takes surveil and mfgyear as input to give registration details of planes manufactured in the entered year, 
+    The value of surveil specifies whether the data required is for surveillance or non surveillance planes 
+    surveil=0 means data for surveillance planes and n=1 indicates data for non surveillance planes.
     ----------
     year : int
         the manufactured year
@@ -66,9 +66,9 @@ def queries( n : int, year : int):
 
 
     logging.info(f"Script Starts")
-    if n in (0,1):
-        logging.info(f"Value of n is valid, {n} is valid")
-        if n==0:
+    if surveil in (0,1):
+        logging.info(f"Value of surveil is valid, {surveil} is valid")
+        if surveil==0:
             try:
                 client = bigquery.Client()
                 logging.info(f"Connection established to Big Query Server")
@@ -176,12 +176,12 @@ def queries( n : int, year : int):
 
 
 @app.get("/number_of_flights")
-def noofflights(quan: int,flights: int):
+def noofflights(quantity: int,flights: int):
     endpoint="/number_of_flights"
     logging.info(f"Script Starts")
-    if quan in (0,1):
-        logging.info(f"Value of quan is valid, {quan} is valid")
-        if quan == 1:
+    if quantity in (0,1):
+        logging.info(f"Value of quantity is valid, {quantity} is valid")
+        if quantity == 1:
             try:
                 client = bigquery.Client()
                 logging.info(f"Connection established to Big Query Server")
