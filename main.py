@@ -6,13 +6,13 @@ from database import engine, SessionLocal
 from dotenv import load_dotenv
 from routers import plot, data, users, authentication
 from google.cloud import bigquery
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, status, HTTPException
 from custom_functions import logfunc
 from fastapi.staticfiles import StaticFiles
 import json
 import schemas
 from routers.oaut2 import get_current_user
-
+from fastapi import FastAPI,status,HTTPException
 #################################################
 # Author: Jui, Abhijit, Piyush
 # Creation Date: 23-Jun-22
@@ -346,8 +346,8 @@ def typengine(type:int,
 
 #################################
 # Jui
-@app.get("/get_popular_engine_count")
-def popular_engine():
+@app.get("/get_popular_engine_count",status_code=status.HTTP_200_OK)
+def popular_engine(get_current_user: schemas.ServiceAccount = Depends(get_current_user)):
     endpoint=('/get_popular_engine_count') 
     """Gets and returns the aggregate STATISTICS of flights and records
     Parameters
@@ -364,10 +364,10 @@ def popular_engine():
         client = bigquery.Client()
         logging.info(f"Connection established to Big Query Server")
     except Exception as e:
-        logging.error(f"Check the path of the JSON file and contents")
-        logging.error(f"Cannot connect to Big Query Server")
-        logfunc(endpoint, 101)
-        return 101
+        logging.error(f"Cannot connect to Big Query Server "+str(e))
+        #logfunc(endpoint, 101)
+        logfunc(get_current_user.email, endpoint, 500)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail="Something went wrong")
     formated_query = f"""
     WITH TOP_ENGINES AS (SELECT TYPE_ENGINE, COUNT(N_NUMBER) AS COUNT_ENGINE_TYPE FROM `plane-detection-352701.SPY_PLANE.FAA` 
 GROUP BY 1),
@@ -381,13 +381,15 @@ ORDER BY COUNT_ENGINE_TYPE DESC
     try:
         df = client.query(formated_query).to_dataframe()
     except Exception as e:
-        logging.error(f"Bad SQL Query, Please verify SQL")
-        logfunc(endpoint, 104)
-        return 104
+        logging.error(f"Bad SQL Query, Please verify SQL" + str(e))
+        #logfunc(endpoint, 104)
+        logfunc(get_current_user.email, endpoint, 500)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail="Something went wrong")
     if df.empty:
         logging.error(f"No rows returned from big query")
-        logfunc(endpoint, 103)
-        return 103
+        #logfunc(endpoint, 103)
+        logfunc(get_current_user.email, endpoint, 404)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="No data found for given values")
     # logging.info(f"Aggregating data from dataframe")
     # df2 = df.groupby(['TYPE_AIRCRAFT'])['TYPE_AIRCRAFT'].count().reset_index(name='count').sort_values(['count'], ascending=False) 
     # json_stats = df2.to_json(orient='records')
@@ -402,7 +404,7 @@ ORDER BY COUNT_ENGINE_TYPE DESC
     # json.dumps(parsed_stats, indent=4)
     json.dumps(json_records, indent=4)
     logging.info(f"Returning Json objects")
-    logfunc(endpoint, 200)
+    logfunc(get_current_user.email, endpoint, 200)
     return parsed_records
     #else:
      #   logging.error(f"User passed state, {state_short} is invalid")
@@ -410,10 +412,12 @@ ORDER BY COUNT_ENGINE_TYPE DESC
        # return 102
 
 
-@app.get("/get_company_address")
-def find_address(N_NUMBER : str):
+@app.get("/get_company_address",status_code=status.HTTP_200_OK)
+def find_address(N_NUMBER : str,
+                        get_current_user: schemas.ServiceAccount = Depends(get_current_user)):
     endpoint=('/get_company_address')
     """Gets and returns the records of comapny name with full address
+
     Parameters
     ----------
     state_short : str
@@ -432,15 +436,18 @@ def find_address(N_NUMBER : str):
     except Exception as e:
         logging.error(f"Check the path of the JSON file and contents")
         logging.error(f"Cannot connect to Big Query Server")
-        logfunc(endpoint, 101)
-        return 101
+        #logfunc(endpoint, 101)
+        logfunc(get_current_user.email, endpoint, 500)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail="Something went wrong")
     formated_query = f"""SELECT 
 spy.N_NUMBER,
+
 IFNULL(spy.NAME, " ") || ', ' || IFNULL(spy.STREET, " ") || ', ' || IFNULL(spy.STREET2, " ") || ', ' || IFNULL(spy.ZIP_CODE, " ") || ', ' || IFNULL(reg.NAME, " ") || ', ' || IFNULL(spy.COUNTRY, " ") as FULL_ADDRESS
 -- CONCAT(spy.NAME,", ", spy.STREET,", ", spy.STREET2,", ",spy.ZIP_CODE,", ",reg.NAME,", ",spy.COUNTRY) AS ADDRESS 
 FROM `plane-detection-352701.SPY_PLANE.FAA` as spy
 JOIN `plane-detection-352701.SPY_PLANE.REGION` as reg
 ON REGION = reg.ID
+
 JOIN `plane-detection-352701.SPY_PLANE.STATE_NAMES` as s
 ON STATE = s.SHORT_NAME
 WHERE N_NUMBER = '{N_NUMBER}'  
@@ -451,12 +458,15 @@ WHERE N_NUMBER = '{N_NUMBER}'
         df = client.query(formated_query).to_dataframe()
     except Exception as e:
         logging.error(f"Bad SQL Query, Please verify SQL")
-        logfunc(endpoint, 104)
-        return 104
+        #logfunc(endpoint, 104)
+        logfunc(get_current_user.email, endpoint, 500)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail="Something went wrong")
     if df.empty:
         logging.error(f"No rows returned from big query")
-        logfunc(endpoint, 103)
-        return 103
+        #logfunc(endpoint, 103)
+        logfunc(get_current_user.email, endpoint, 404)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="No data found for given values")
+
     # logging.info(f"Aggregating data from dataframe")
     # df2 = df.groupby(['TYPE_AIRCRAFT'])['TYPE_AIRCRAFT'].count().reset_index(name='count').sort_values(['count'], ascending=False) 
     # json_stats = df2.to_json(orient='records')
@@ -468,7 +478,7 @@ WHERE N_NUMBER = '{N_NUMBER}'
     # json.dumps(parsed_stats, indent=4)
     json.dumps(json_records, indent=4)
     logging.info(f"Returning Json objects")
-    logfunc(endpoint, 200)
+    logfunc(get_current_user.email, endpoint, 200)
     return parsed_records
     #else:
      #   logging.error(f"User passed state, {state_short} is invalid")
@@ -476,10 +486,12 @@ WHERE N_NUMBER = '{N_NUMBER}'
        # return 102
 
 
-@app.get("/flight_details_between_years")
-def find_by_dates(start_date, end_date):
+@app.get("/flight_details_between_years",status_code=status.HTTP_200_OK)
+def find_by_dates(start_date, end_date,
+                        get_current_user: schemas.ServiceAccount = Depends(get_current_user)):
     endpoint=('/flight_details_between_years') 
     """Gets and returns the records of aircrafts
+
     Parameters
     ----------
     start_date : str
@@ -492,16 +504,30 @@ def find_by_dates(start_date, end_date):
         List of planes from particular start_date to end_date
         
     """
+    if(start_date.isnumeric() and end_date.isnumeric()):
+        if(len(start_date)==4 and len(end_date)==4):
+            pass
+        else:
+            logfunc(get_current_user.email, endpoint, 400)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="Invalid input")
+    else:
+        logfunc(get_current_user.email, endpoint, 400)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="Invalid input")
+
+     
+    start_date=start_date+"-01-01"
+    end_date=end_date+"-01-01"
+
     # if validate_state(state_short):
     logging.info(f"User passed dates are, {start_date} and {end_date} is valid")
     try:
         client = bigquery.Client()
         logging.info(f"Connection established to Big Query Server")
     except Exception as e:
-        logging.error(f"Check the path of the JSON file and contents")
         logging.error(f"Cannot connect to Big Query Server")
-        logfunc(endpoint, 101)
-        return 101
+        #logfunc(endpoint, 101)
+        logfunc(get_current_user.email, endpoint, 500)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail="Something went wrong")
     formated_query = f"""
     SELECT N_NUMBER, YEAR_MFR FROM `plane-detection-352701.SPY_PLANE.FAA` 
     WHERE YEAR_MFR BETWEEN '{start_date}' AND '{end_date}'
@@ -511,12 +537,15 @@ def find_by_dates(start_date, end_date):
         df = client.query(formated_query).to_dataframe()
     except Exception as e:
         logging.error(f"Bad SQL Query, Please verify SQL")
-        logfunc(endpoint, 104)
-        return 104
+        #logfunc(endpoint, 104)
+        logfunc(get_current_user.email, endpoint, 500)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail="Something went wrong")
     if df.empty:
         logging.error(f"No rows returned from big query")
-        logfunc(endpoint, 103)
-        return 103
+        #logfunc(endpoint, 103)
+        logfunc(get_current_user.email, endpoint, 404)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="No data found for given values")
+
     # logging.info(f"Aggregating data from dataframe")
     # df2 = df.groupby(['TYPE_AIRCRAFT'])['TYPE_AIRCRAFT'].count().reset_index(name='count').sort_values(['count'], ascending=False) 
     # json_stats = df2.to_json(orient='records')
@@ -530,7 +559,7 @@ def find_by_dates(start_date, end_date):
     # json.dumps(parsed_stats, indent=4)
     json.dumps(json_records, indent=4)
     logging.info(f"Returning Json objects")
-    logfunc(endpoint, 200)
+    logfunc(get_current_user.email, endpoint, 200)
     return parsed_records
     #else:
      #   logging.error(f"User passed state, {state_short} is invalid")

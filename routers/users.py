@@ -27,7 +27,7 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 
-@router.post('/create', response_model = schemas.ShowServiceAccount)
+@router.post('/create', response_model = schemas.ShowServiceAccount, include_in_schema=False)
 def create_user(request: schemas.ServiceAccount, db : Session = Depends(get_db)):
     hashed_password = get_password_hash(request.password)
     new_sa = models.ServiceAccount(name=request.name, email=request.email, hashed_password = hashed_password )
@@ -37,7 +37,7 @@ def create_user(request: schemas.ServiceAccount, db : Session = Depends(get_db))
     return new_sa
 
 
-@router.get('/{id}', response_model = schemas.ShowServiceAccount)
+@router.get('/{id}', response_model = schemas.ShowServiceAccount, include_in_schema=False)
 def get_user(id:int, db : Session = Depends(get_db), get_current_user: schemas.ServiceAccount = Depends(get_current_user) ):
     user = db.query(models.ServiceAccount).filter(models.ServiceAccount.id == id).first()
     if not user:
