@@ -1,7 +1,7 @@
 google-cloud-bigquery==2.34.1
 uvicorn
 python-dotenv
-pyarrow
+pyarrow==8.0.0
 ipykernel
 pandas
 gunicorn
