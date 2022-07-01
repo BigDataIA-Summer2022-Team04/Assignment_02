@@ -1,16 +1,17 @@
 import os
-import uvicorn
 import logging
 import pandas as pd
-from typing import Union
+import models
+from database import engine, SessionLocal
 from dotenv import load_dotenv
-from routers import plot, data
+from routers import plot, data, users, authentication
 from google.cloud import bigquery
-from fastapi import FastAPI, Query
-from custom_functions import validate_state, logfunc
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Depends
+from custom_functions import logfunc
 from fastapi.staticfiles import StaticFiles
 import json
+import schemas
+from routers.oaut2 import get_current_user
 
 #################################################
 # Author: Jui, Abhijit, Piyush
@@ -43,16 +44,18 @@ logging.basicConfig(
 
 app = FastAPI(title="Main App")
 
+models.Base.metadata.create_all(bind=engine)
 
 #################################
 # Abhi
-@app.get("/planes_info_from_mfg_year")
-def queries( n : int, year : int):
+@app.get("/planes_info_from_manufacture_year")
+def queries( surveil : int, year : int,
+                        get_current_user: schemas.ServiceAccount = Depends(get_current_user)):
     endpoint='/planes_info_from_mfg_year'
 
-    """Takes n and mfgyear as input to give registration details of planes manufactured in the entered year, 
-    The value of n specifies whether the data required is for surveillance or non surveillance planes 
-    n=0 means data for surveillance planes and n=1 indicates data for non surveillance planes.
+    """Takes surveil and mfgyear as input to give registration details of planes manufactured in the entered year, 
+    The value of surveil specifies whether the data required is for surveillance or non surveillance planes 
+    surveil=0 means data for surveillance planes and n=1 indicates data for non surveillance planes.
     ----------
     year : int
         the manufactured year
@@ -66,17 +69,17 @@ def queries( n : int, year : int):
 
 
     logging.info(f"Script Starts")
-    if n in (0,1):
-        logging.info(f"Value of n is valid, {n} is valid")
-        if n==0:
+    if surveil in (0,1):
+        logging.info(f"Value of surveil is valid, {surveil} is valid")
+        if surveil==0:
             try:
                 client = bigquery.Client()
                 logging.info(f"Connection established to Big Query Server")
             except Exception as e:
                 logging.error(f"Check the path of the JSON file and contents")
                 logging.error(f"Cannot connect to Big Query Server")
-                logfunc(endpoint,101)
-                return 101
+                logfunc(get_current_user.email, endpoint,500)
+                return 500
             try:
                 logging.info(f"Querying data from big query for surveillance years")
                 queryyears = client.query(f"""SELECT distinct extract(year from a.year_mfr) FROM `plane-detection-352701.SPY_PLANE.FAA_REGISTRATION-2022-06-13T00_09_43` a
@@ -84,8 +87,8 @@ def queries( n : int, year : int):
                 where b.class = 'surveil' and extract(year from a.year_mfr) is not Null order by 1""")
             except Exception as e:
                 logging.error(f"Bad SQL Query, verify SQL for fetching surveillance planes mfg years")
-                logfunc(endpoint,104)
-                return 104
+                logfunc(get_current_user.email, endpoint,500)
+                return 500
             resultyear = queryyears.result()
             years=[]
             for mfgyear in resultyear:
@@ -97,25 +100,24 @@ def queries( n : int, year : int):
                     where b.class = 'surveil' and extract(year from a.year_mfr)={year}""").to_dataframe()
                 except Exception as e:
                     logging.error(f"Bad SQL Query, verify SQL for fetching surveillance data")
-                    logfunc(endpoint,104)
-                    return 104
+                    logfunc(get_current_user.email, endpoint,500)
+                    return 500
 
                 if df.empty:
                     logging.error(f"No rows returned from big query")
-                    logfunc(endpoint,103)
-                    return 103
+                    logfunc(get_current_user.email, endpoint,204)
+                    return 204
 
                 logging.info(f"Parsing dataframe into Json object")
                 json_records = df.to_json(orient='records')
                 parsed_records = json.loads(json_records)
                 json.dumps(json_records, indent=4)
                 logging.info(f"Returning Json objects")
-                logfunc(endpoint, 200)
+                logfunc(get_current_user.email, endpoint, 200)
                 return  parsed_records
             else:
-                print('No non surrveilance planes were manufactured in the year provided please select from the following years ', years)
-                logfunc(endpoint,103)
-                return 103
+                logfunc(get_current_user.email, endpoint,204)
+                return 204, ('No non surrveilance planes were manufactured in the year provided please select from the following years ', years)
 
         else:
             try:
@@ -124,8 +126,8 @@ def queries( n : int, year : int):
             except Exception as e:
                 logging.error(f"Check the path of the JSON file and contents")
                 logging.error(f"Cannot connect to Big Query Server")
-                logfunc(endpoint,101)
-                return 101
+                logfunc(get_current_user.email, endpoint,500)
+                return 500
             try:
                 logging.info(f"Querying data from big query for surveillance years")
                 queryyears = client.query(f"""SELECT distinct extract(year from a.year_mfr) FROM `plane-detection-352701.SPY_PLANE.FAA_REGISTRATION-2022-06-13T00_09_43` a
@@ -133,8 +135,8 @@ def queries( n : int, year : int):
                 where b.class != 'surveil' and extract(year from a.year_mfr) is not Null order by 1""")
             except Exception as e:
                 logging.error(f"Bad SQL Query, verify SQL for fetching years for non surveillance planes mfg years")
-                logfunc(endpoint,104)
-                return 104
+                logfunc(get_current_user.email, endpoint,500)
+                return 500
             resultyear = queryyears.result()
             years=[]
             for mfgyear in resultyear:
@@ -145,8 +147,8 @@ def queries( n : int, year : int):
                     logging.info(f"Connection established to Big Query Server")
                 except Exception as e:
                     logging.error(f"Check the path of the JSON file and contents")
-                    logfunc(endpoint,101)
-                    return 101
+                    logfunc(get_current_user.email, endpoint,500)
+                    return 500
                 df = pd.DataFrame()
 
                 try:
@@ -158,59 +160,58 @@ def queries( n : int, year : int):
 
                 if df.empty:
                     logging.error(f"No rows returned from big query")
-                    logfunc(endpoint,103)
-                    return 103
+                    logfunc(get_current_user.email, endpoint,204)
+                    return 204
 
                 logging.info(f"Parsing dataframe into Json object")
                 json_records = df.to_json(orient='records')
                 parsed_records = json.loads(json_records)
                 json.dumps(json_records, indent=4)
                 logging.info(f"Returning Json objects")
-                logfunc(endpoint, 200)
+                logfunc(get_current_user.email, endpoint, 200)
                 return  parsed_records
             else:
-                print('No non surrveilance planes were manufactured in the year provided please select from the following years ', years)
-                logfunc(endpoint,103)
-                return 103
+                logfunc(get_current_user.email, endpoint,204)
+                return 204, ('No non surrveilance planes were manufactured in the year provided please select from the following years ', years)
     else:
-        print('please enter 0 for surveillance plane details or 1 for non-surveillance')
-        logfunc(endpoint,102)
-        return 102
+        logfunc(get_current_user.email, endpoint,400)
+        return 400, ('please enter 0 for surveillance plane details or 1 for non-surveillance')
 
 
 @app.get("/number_of_flights")
-def noofflights(quan: int,flights: int):
+def noofflights(quantity: int,flights: int,
+                        get_current_user: schemas.ServiceAccount = Depends(get_current_user)):
     endpoint="/number_of_flights"
     logging.info(f"Script Starts")
-    if quan in (0,1):
-        logging.info(f"Value of quan is valid, {quan} is valid")
-        if quan == 1:
+    if quantity in (0,1):
+        logging.info(f"Value of quantity is valid, {quantity} is valid")
+        if quantity == 1:
             try:
                 client = bigquery.Client()
                 logging.info(f"Connection established to Big Query Server")
             except Exception as e:
                 logging.error(f"Check the path of the JSON file and contents")
                 logging.error(f"Cannot connect to Big Query Server")
-                logfunc(endpoint,101)
-                return 101
+                logfunc(get_current_user.email, endpoint,500)
+                return 500
             try:
                 logging.info(f"Querying data from big query")
                 df = client.query(f"""SELECT adshex, flights, type FROM `plane-detection-352701.SPY_PLANE.PLANE_FEATURES` 
                 where flights > {flights} order by flights desc""").to_dataframe()
             except Exception as e:
                 logging.error(f"Bad SQL Query, verify SQL for fetching data")
-                logfunc(endpoint,104)
-                return 104
+                logfunc(get_current_user.email, endpoint,500)
+                return 500
             if df.empty:
                 logging.error(f"No rows returned from big query")
-                logfunc(endpoint,103)
-                return 103
+                logfunc(get_current_user.email, endpoint,204)
+                return 204
             logging.info(f"Parsing dataframe into Json object")
             json_records = df.to_json(orient='records')
             parsed_records = json.loads(json_records)
             json.dumps(json_records, indent=4)
             logging.info(f"Returning Json objects")
-            logfunc(endpoint, 200)
+            logfunc(get_current_user.email, endpoint, 200)
             return  parsed_records
         
 
@@ -221,8 +222,8 @@ def noofflights(quan: int,flights: int):
             except Exception as e:
                 logging.error(f"Check the path of the JSON file and contents")
                 logging.error(f"Cannot connect to Big Query Server")
-                logfunc(endpoint,101)
-                return 101
+                logfunc(get_current_user.email, endpoint,500)
+                return 500
 
             try:
                 logging.info(f"Querying data from big query")
@@ -230,28 +231,28 @@ def noofflights(quan: int,flights: int):
                 where flights < {flights} order by flights desc""").to_dataframe()
             except Exception as e:
                 logging.error(f"Bad SQL Query, verify SQL for fetching surveillance data")
-                logfunc(endpoint,104)
-                return 104
+                logfunc(get_current_user.email, endpoint,500)
+                return 500
 
             if df.empty:
                 logging.error(f"No rows returned from big query")
-                logfunc(endpoint,103)
-                return 103
+                logfunc(get_current_user.email, endpoint,204)
+                return 204
             logging.info(f"Parsing dataframe into Json object")
             json_records = df.to_json(orient='records')
             parsed_records = json.loads(json_records)
             json.dumps(json_records, indent=4)
             logging.info(f"Returning Json objects")
-            logfunc(endpoint, 200)
+            logfunc(get_current_user.email, endpoint, 200)
             return  parsed_records
     else:
-        print('please enter 0 or 1')
-        logfunc(endpoint,102)
-        return 102
+        logfunc(get_current_user.email, endpoint,400)
+        return 400, ('please enter 0 or 1')
 
 
 @app.get("/regdet_by_type_aircraft")
-def typeaircraft(type:int):
+def typeaircraft(type:int,
+                        get_current_user: schemas.ServiceAccount = Depends(get_current_user)):
     endpoint="/regdet_by_type_aircraft"
     logging.info(f"Script Starts")
     try:
@@ -260,14 +261,14 @@ def typeaircraft(type:int):
     except Exception as e:
         logging.error(f"Check the path of the JSON file and contents")
         logging.error(f"Cannot connect to Big Query Server")
-        logfunc(endpoint,101)
-        return 101
+        logfunc(get_current_user.email, endpoint,500)
+        return 500
     try:
         aircrafttypes = client.query(f"""select distinct TYPE_AIRCRAFT from `plane-detection-352701.SPY_PLANE.FAA_REGISTRATION-2022-06-13T00_09_43` order by 1""")
     except Exception as e:
         logging.error(f"Bad SQL Query, verify SQL for fetching surveillance planes mfg years")
-        logfunc(endpoint,104)
-        return 104
+        logfunc(get_current_user.email, endpoint,500)
+        return 500
 
     resulttype = aircrafttypes.result()
     listypes=[]
@@ -280,24 +281,24 @@ def typeaircraft(type:int):
             where a.TYPE_AIRCRAFT={type}""").to_dataframe()
         except Exception as e:
             logging.error(f"Bad SQL Query, verify SQL for fetching surveillance data")
-            logfunc(endpoint,104)
-            return 104
+            logfunc(get_current_user.email, endpoint,500)
+            return 500
     else:
-        print('Please enter a valid aircraft type from this list ', listypes)
-        logfunc(endpoint,102)
-        return 102
+        logfunc(get_current_user.email, endpoint,400)
+        return 400, ('Please enter a valid aircraft type from this list ', listypes)
     
     logging.info(f"Parsing dataframe into Json object")
     json_records = df.to_json(orient='records')
     parsed_records = json.loads(json_records)
     json.dumps(json_records, indent=4)
     logging.info(f"Returning Json objects")
-    logfunc(endpoint, 200)
+    logfunc(get_current_user.email, endpoint, 200)
     return  parsed_records
 
 
 @app.get("regdet_through_enginetype")
-def typengine(type:int):
+def typengine(type:int,
+                        get_current_user: schemas.ServiceAccount = Depends(get_current_user)):
     endpoint="regdet_through_enginetype"
     logging.info(f"Script Starts")
     try:
@@ -306,14 +307,14 @@ def typengine(type:int):
     except Exception as e:
         logging.error(f"Check the path of the JSON file and contents")
         logging.error(f"Cannot connect to Big Query Server")
-        logfunc(endpoint,101)
-        return 101
+        logfunc(get_current_user.email, endpoint,500)
+        return 500
     try:
         enginetype = client.query(f"""select distinct TYPE_ENGINE from `plane-detection-352701.SPY_PLANE.FAA_REGISTRATION-2022-06-13T00_09_43` order by 1""")
     except Exception as e:
         logging.error(f"Bad SQL Query, verify SQL for fetching surveillance planes mfg years")
-        logfunc(endpoint,104)
-        return 104
+        logfunc(get_current_user.email, endpoint,500)
+        return 500
 
     resulttype = enginetype.result()
     listypes=[]
@@ -326,19 +327,18 @@ def typengine(type:int):
             where a.TYPE_ENGINE={type}""").to_dataframe()
         except Exception as e:
             logging.error(f"Bad SQL Query, verify SQL for fetching surveillance data")
-            logfunc(endpoint,104)
-            return 104
+            logfunc(get_current_user.email, endpoint,500)
+            return 500
     else:
-        print('Please enter a valid engine type from this list ', listypes)
-        logfunc(endpoint,102)
-        return 102
+        logfunc(get_current_user.email, endpoint,400)
+        return 400, ('Please enter a valid engine type from this list ', listypes)
     
     logging.info(f"Parsing dataframe into Json object")
     json_records = df.to_json(orient='records')
     parsed_records = json.loads(json_records)
     json.dumps(json_records, indent=4)
     logging.info(f"Returning Json objects")
-    logfunc(endpoint, 200)
+    logfunc(get_current_user.email, endpoint, 200)
     return  parsed_records
 
 #################################
@@ -542,9 +542,11 @@ def find_by_dates(start_date, end_date):
 #################################
 # Piyush
 
+
 app.include_router(plot.router)
 app.include_router(data.router)
-
+app.include_router(users.router)
+app.include_router(authentication.router)
 app.mount("/", StaticFiles(directory="ui", html=True), name="ui")
 #################################
 

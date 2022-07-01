@@ -9,5 +9,8 @@ pyarrow
 ipykernel
 geopandas
 gunicorn
-
-
+sqlalchemy
+passlib
+python-jose
+bcrypt
+python-multipart
