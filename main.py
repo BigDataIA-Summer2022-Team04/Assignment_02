@@ -291,7 +291,7 @@ def typeaircraft(type:int):
     return  parsed_records
 
 
-@app.get("regdet_through_enginetype")
+@app.get("/regdet_through_enginetype")
 def typengine(type:int):
     endpoint="regdet_through_enginetype"
     logging.info(f"Script Starts")
