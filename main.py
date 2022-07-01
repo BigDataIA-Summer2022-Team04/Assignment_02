@@ -296,9 +296,8 @@ def typeaircraft(type:int,
     return  parsed_records
 
 
-@app.get("regdet_through_enginetype")
-def typengine(type:int,
-                        get_current_user: schemas.ServiceAccount = Depends(get_current_user)):
+@app.get("/regdet_through_enginetype")
+def typengine(type:int,get_current_user: schemas.ServiceAccount = Depends(get_current_user)):
     endpoint="regdet_through_enginetype"
     logging.info(f"Script Starts")
     try:
