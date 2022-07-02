@@ -114,10 +114,7 @@ def find_address(N_NUMBER : str):
         logging.error(f"Cannot connect to Big Query Server")
         #logfunc(endpoint, 101)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail="Something went wrong")
-    formated_query = f"""SELECT 
-spy.N_NUMBER,
-
-IFNULL(spy.NAME, " ") || ', ' || IFNULL(spy.STREET, " ") || ', ' || IFNULL(spy.STREET2, " ") || ', ' || IFNULL(spy.ZIP_CODE, " ") || ', ' || IFNULL(reg.NAME, " ") || ', ' || IFNULL(spy.COUNTRY, " ") as FULL_ADDRESS
+    formated_query = f"""SELECT spy.N_NUMBER, IFNULL(spy.NAME, " ") || ', ' || IFNULL(spy.STREET, " ") || ', ' || IFNULL(spy.STREET2, " ") || ', ' || IFNULL(spy.ZIP_CODE, " ") || ', ' || IFNULL(reg.NAME, " ") || ', ' || IFNULL(spy.COUNTRY, " ") as FULL_ADDRESS
 -- CONCAT(spy.NAME,", ", spy.STREET,", ", spy.STREET2,", ",spy.ZIP_CODE,", ",reg.NAME,", ",spy.COUNTRY) AS ADDRESS 
 FROM `plane-detection-352701.SPY_PLANE.FAA` as spy
 JOIN `plane-detection-352701.SPY_PLANE.REGION` as reg
@@ -180,7 +177,10 @@ def find_by_dates(start_date, end_date):
     """
     if(start_date.isnumeric() and end_date.isnumeric()):
         if(len(start_date)==4 and len(end_date)==4):
-            pass
+            if(int(end_date)-int(start_date)>0):  
+                pass
+            else:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="Start year should be smaller than End Year")
         else:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="Invalid input")
     else:
@@ -200,7 +200,7 @@ def find_by_dates(start_date, end_date):
         #logfunc(endpoint, 101)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail="Something went wrong")
     formated_query = f"""
-    SELECT N_NUMBER, YEAR_MFR FROM `plane-detection-352701.SPY_PLANE.FAA` 
+    SELECT N_NUMBER,NAME,CITY,STATE,COUNTRY,YEAR_MFR FROM `plane-detection-352701.SPY_PLANE.FAA` 
     WHERE YEAR_MFR BETWEEN '{start_date}' AND '{end_date}'
     """
     logging.info(f"Fetching data from big query")
