@@ -27,7 +27,7 @@
 
 1. FastAPI - `deploy-api` branch - [link](https://github.com/BigDataIA-Summer2022-Team04/Assignment_02/tree/deploy-api)
 2. Log Analytics - `deploy-api-report` branch -  [link](https://github.com/BigDataIA-Summer2022-Team04/Assignment_02/tree/deploy-api-report)
-3. Log Analytics - `main` - [link](https://github.com/BigDataIA-Summer2022-Team04/streamlit_planes) (Seperate Repo)
+3. Log Analytics - `main` - [link](https://github.com/BigDataIA-Summer2022-Team04/streamlit_planes) (Separate Repo)
 
 
 
