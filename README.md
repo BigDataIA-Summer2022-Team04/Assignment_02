@@ -13,6 +13,7 @@
     ![API Swagger](/images/01.png)
 
 2. Test and implement logging for the API <br>
+    Log Report - [link](https://github.com/BigDataIA-Summer2022-Team04/Assignment_02/blob/api-unit-test/runSat%20Jul%20%202%2003:47:30%20EDT%202022.log) <br>
     BigQuery
     ![Logs](/images/02.png)
 
