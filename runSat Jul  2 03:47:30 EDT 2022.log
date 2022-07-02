@@ -1,0 +1,26 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.9.13, pytest-7.1.2, pluggy-1.0.0 -- /Users/piyush/Sandbox/Assignment_02/spyplane/bin/python3
+cachedir: .pytest_cache
+rootdir: /Users/piyush/Sandbox/Assignment_02
+plugins: anyio-3.6.1, dash-2.5.1
+collecting ... collected 17 items
+
+test.py::test_login PASSED                                               [  5%]
+test.py::test_incorrect_login PASSED                                     [ 11%]
+test.py::test_data_registrant_invalid_token PASSED                       [ 17%]
+test.py::test_data_registrant_correct PASSED                             [ 23%]
+test.py::test_data_registrant_wrong_state PASSED                         [ 29%]
+test.py::test_data_aircraft_invalid_token PASSED                         [ 35%]
+test.py::test_data_aircraft_correct PASSED                               [ 41%]
+test.py::test_data_aircraft_wrong_state PASSED                           [ 47%]
+test.py::test_data_engine_invalid_token PASSED                           [ 52%]
+test.py::test_data_engine_correct PASSED                                 [ 58%]
+test.py::test_data_engine_wrong_state PASSED                             [ 64%]
+test.py::test_data_map_invalid_token PASSED                              [ 70%]
+test.py::test_data_map_correct PASSED                                    [ 76%]
+test.py::test_data_map_wrong_state PASSED                                [ 82%]
+test.py::test_data_histogram_invalid_token PASSED                        [ 88%]
+test.py::test_data_histogram_correct PASSED                              [ 94%]
+test.py::test_data_histogram_wrong_state PASSED                          [100%]
+
+============================= 17 passed in 17.52s ==============================

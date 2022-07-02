@@ -102,7 +102,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+# .env
 .venv
 env/
 venv/
@@ -131,3 +131,5 @@ dmypy.json
 .DS_Store
 API/.env
 spyplane
+.vscode
+!runSat Jul  2 03:47:30 EDT 2022.log
