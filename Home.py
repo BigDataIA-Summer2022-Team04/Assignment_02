@@ -81,7 +81,11 @@ st.write('You selected:', year)
 
 def result(n,year):
     payload={'n': n, 'year' : year }
-    response = requests.request("GET", url, params=payload)
+    url = f"https://api.anandpiyush.com/planes_info_from_manufacture_year?surveil={payload['n']}&year={payload['year']}"
+    header = {}
+    token='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJrdW5qaXJhbWFuLmFAbm9ydGhlYXN0ZXJuLmVkdSIsImV4cCI6MTY1NjczMjUxN30.8PWZXrPtXADvTh1VBbjE10emO3j3hGR9LXcFlAqrgHs'
+    header['Authorization'] = f"Bearer {token}"
+    response = requests.request("GET", url, params=payload,  headers=header)
     data=json.loads(response.text)
     df2=pd.DataFrame(data)
     return df2
@@ -105,14 +109,6 @@ if buttonstat:
     st.markdown('Bar chart displaying counts of all engine manufacture models:')
     
     st.bar_chart(chart1)
-
-
-
-
-
-
-
-
 
 
 
