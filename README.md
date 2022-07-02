@@ -1,6 +1,6 @@
 # Assignment_02
 
-Links:
+## Links:
 * https://api.anandpiyush.com
 * https://api.anandpiyush.com/docs
 * https://streamlit.anandpiyush.com/
@@ -37,5 +37,5 @@ Links:
 3. Log Analytics - `main` - [link](https://github.com/BigDataIA-Summer2022-Team04/streamlit_planes) (Separate Repo)
 
 
-WE ATTEST THAT WE HAVEN’T USED ANY OTHER STUDENTS’ WORK IN OUR ASSIGNMENT AND ABIDE BY THE POLICIES LISTED IN THE STUDENT HANDBOOK 
+WE ATTEST THAT WE HAVEN’T USED ANY OTHER STUDENTS’ WORK IN OUR ASSIGNMENT AND ABIDE BY THE POLICIES LISTED IN THE STUDENT HANDBOOK <br> 
 Contribution: Jui: % Abhijit: % Piyush: %
