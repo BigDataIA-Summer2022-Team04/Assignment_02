@@ -8,55 +8,30 @@ from google.cloud import bigquery
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from datetime import datetime
 
 # app init
 server = Flask(__name__)
 app = dash.Dash(__name__, server = server, external_stylesheets=[dbc.themes.UNITED, dbc.icons.BOOTSTRAP])
+app.title = 'Reports'
+app._favicon = ("report.png")
 
-# read files
 load_dotenv()
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.getenv('BQ_KEY_JSON')
 client = bigquery.Client()
-# sample_query1 = r"""
-# with jui as (
-#   SELECT
-#   DATE(logtime) AS date,
-#   COUNT(*) AS JUI
-# FROM `plane-detection-352701.SPY_PLANE.logs`
-# where Username = 'jui'
-# GROUP BY DATE(logtime)
-# ), abhi as (
-#   SELECT
-#   DATE(logtime) AS date,
-#   COUNT(*) AS ABHI
-# FROM `plane-detection-352701.SPY_PLANE.logs`
-# where Username = 'abhijit'
-# GROUP BY DATE(logtime)
-# ), piyush as (
-#   SELECT
-#   DATE(logtime) AS date,
-#   COUNT(*) AS PIYUSH
-# FROM `plane-detection-352701.SPY_PLANE.logs`
-# where Username = 'piyush'
-# GROUP BY DATE(logtime)
-# )
-
-# SELECT j.date, JUI, ABHI, PIYUSH
-# FROM jui j
-# FULL OUTER JOIN abhi a ON j.date = a.date
-# FULL OUTER JOIN piyush p ON j.date = p.date
-# ORDER BY 1 ASC
-# """
-# df1 = client.query(sample_query1).to_dataframe()
 sample_query2 = r"""SELECT * FROM `plane-detection-352701.SPY_PLANE.logs`"""
 df2 = client.query(sample_query2).to_dataframe()
 df2['logtime'] = pd.to_datetime(df2['logtime'])
 df2['logtime'] = pd.to_datetime(df2['logtime'], format='%d/%m/%y %H:%M')
 df2['logdate'] = pd.to_datetime(df2['logtime']).dt.strftime('%Y-%m-%d')
 df1 = pd.crosstab(df2['logdate'],df2['Username']).reset_index()
-# app component
-Header_component = html.H1("API Analysis Dashboard", style = {'color':'darkcyan', 'text-align':'center', 'font-size': '72px'})
 
+# app component
+now = datetime.now()
+ts = now.strftime("%b %d %Y, %H:%M")
+
+Header_component = html.H1("API Analysis Dashboard", style = {'color':'darkcyan', 'text-align':'center', 'font-size': '72px'})
+Time_component = html.H5(f"Updated on {ts}", style = {'color':'black', 'text-align':'right'})
 # app component
 countfig = go.FigureWidget()
 
@@ -115,18 +90,24 @@ indicator500 = go.FigureWidget(
 
 indicatordata = go.FigureWidget(
     px.pie(
-        labels = ["Data", "Plot"],
-        values = [df2[~df2['Endpoint'].str.contains("/plot/")].shape[0], df2[df2['Endpoint'].str.contains("/plot/")].shape[0]],
+        labels = ["Data", "Plot", "Prediction"],
+        values = [df2[~df2['Endpoint'].str.contains("/plot/")].shape[0], df2[df2['Endpoint'].str.contains("/plot/")].shape[0], df2[df2['Endpoint'].str.contains("/predict/")].shape[0]],
+        hover_name = ["Data", "Plot", "Prediction"],
         hole = 0.4
     )
 )
-indicatordata.update_layout(title = "Data / Plot Request Distribution")
+indicatordata.update_layout(title = "Request Type Distribution")
 
 # app layout
 app.layout = html.Div(
     [
         dbc.Row(
-            Header_component
+            Header_component,
+            # Time_component
+        ),
+        dbc.Row(
+            # Header_component,
+            Time_component
         ),
         dbc.Row(
             [dbc.Col(
@@ -154,4 +135,6 @@ app.layout = html.Div(
 )
 
 # app run
-app.run_server(debug=True, host='0.0.0.0')
+# if __name__ == '__main__':
+app.run_server(debug=True)
+# app.run_server(debug=True, host='0.0.0.0', port = 8051)
